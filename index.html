@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seat Reservation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f4f8;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .week-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #4f46e5;
+            color: white;
+        }
+        button:hover {
+            background: #4338ca;
+        }
+        button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        .week-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background: #4f46e5;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #4338ca;
+        }
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        .seat-header {
+            background: #f3f4f6;
+            font-weight: bold;
+            text-align: left;
+        }
+        .book-btn {
+            background: #10b981;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .book-btn:hover {
+            background: #059669;
+        }
+        .reserved {
+            background: #fee2e2;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .reserved-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .cancel-btn {
+            background: #ef4444;
+            color: white;
+            padding: 5px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .cancel-btn:hover {
+            background: #dc2626;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .booking-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .confirm-btn {
+            flex: 1;
+            background: #10b981;
+            color: white;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .cancel-form-btn {
+            flex: 1;
+            background: #9ca3af;
+            color: white;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .past {
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Commercial Management Office Space Reservation</h1>
+        <p class="subtitle">Book seats up to 2 weeks in advance</p>
+
+        <div class="week-nav">
+            <button onclick="prevWeek()" id="prevBtn">◀ Previous</button>
+            <div class="week-title" id="weekTitle"></div>
+            <button onclick="nextWeek()" id="nextBtn">Next ▶</button>
+        </div>
+
+        <div id="tableContainer"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const TEAM = ['Ariadna Alcazar', 'Doani Valdez', 'Eduardo Ruiz', 'Enrique Martinez', 'Erika Chavez',
+                      'Erika Sosa', 'Ines Alvarez', 'Itandiu Gutierrez', 'Javier Angel Falcon', 'Javier Figueroa',
+                      'Jose Rafael Luna', 'Luis Sosa', 'Manuel Sanchez', 'Paula Cotunga'];
+        
+        const SEATS = [
+            {id: 43, name: 'Seat 43 ☕', desc: 'Next to coffee'},
+            {id: 39, name: 'Seat 39', desc: 'Aisle seat'},
+            {id: 40, name: 'Seat 40', desc: 'Middle seat'},
+            {id: 41, name: 'Seat 41', desc: 'Window seat'}
+        ];
+
+        let currentWeek = getMonday(new Date());
+        let reservations = {};
+        let bookingCell = null;
+
+        // Load saved data
+        try {
+            const saved = localStorage.getItem('seat-reservations');
+            if (saved) reservations = JSON.parse(saved);
+        } catch(e) {}
+
+        function getMonday(d) {
+            d = new Date(d);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(d.setDate(diff));
+            monday.setHours(0, 0, 0, 0);
+            return monday;
+        }
+
+        function formatDate(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        }
+
+        function getWeekDates() {
+            const dates = [];
+            for (let i = 0; i < 5; i++) {
+                const d = new Date(currentWeek);
+                d.setDate(currentWeek.getDate() + i);
+                dates.push(d);
+            }
+            return dates;
+        }
+
+        function prevWeek() {
+            const newWeek = new Date(currentWeek);
+            newWeek.setDate(currentWeek.getDate() - 7);
+            const today = getMonday(new Date());
+            if (newWeek >= today) {
+                currentWeek = newWeek;
+                bookingCell = null;
+                render();
+            }
+        }
+
+        function nextWeek() {
+            const today = new Date();
+            const limit = new Date(today);
+            limit.setDate(today.getDate() + 14);
+            
+            const newWeek = new Date(currentWeek);
+            newWeek.setDate(currentWeek.getDate() + 7);
+            
+            if (newWeek < limit) {
+                currentWeek = newWeek;
+                bookingCell = null;
+                render();
+            }
+        }
+
+        function showBooking(seatId, dateStr) {
+            bookingCell = seatId + '-' + dateStr;
+            render();
+        }
+
+        function confirmBook(seatId, dateStr) {
+            const select = document.getElementById('select-' + seatId + '-' + dateStr);
+            const name = select.value;
+            if (!name) {
+                alert('Please select a person');
+                return;
+            }
+            
+            const key = dateStr + '-' + seatId;
+            reservations[key] = name;
+            
+            try {
+                localStorage.setItem('seat-reservations', JSON.stringify(reservations));
+            } catch(e) {}
+            
+            bookingCell = null;
+            render();
+        }
+
+        function cancelBook() {
+            bookingCell = null;
+            render();
+        }
+
+        function cancelReservation(seatId, dateStr) {
+            const key = dateStr + '-' + seatId;
+            const name = reservations[key];
+            if (confirm('Cancel reservation for ' + name + '?')) {
+                delete reservations[key];
+                try {
+                    localStorage.setItem('seat-reservations', JSON.stringify(reservations));
+                } catch(e) {}
+                render();
+            }
+        }
+
+        function render() {
+            const dates = getWeekDates();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Update title
+            const start = dates[0].toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+            const end = dates[4].toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+            document.getElementById('weekTitle').textContent = 'Week of ' + start + ' - ' + end;
+
+            // Update buttons
+            const mondayToday = getMonday(new Date());
+            document.getElementById('prevBtn').disabled = (currentWeek.getTime() === mondayToday.getTime());
+            
+            const limit = new Date();
+            limit.setDate(limit.getDate() + 14);
+            const nextMonday = new Date(currentWeek);
+            nextMonday.setDate(currentWeek.getDate() + 7);
+            document.getElementById('nextBtn').disabled = (nextMonday >= limit);
+
+            // Build table
+            let html = '<table><thead><tr><th>Seat</th>';
+            dates.forEach(d => {
+                const day = d.toLocaleDateString('en-US', {weekday: 'short'});
+                const date = d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+                html += '<th>' + day + '<br><small>' + date + '</small></th>';
+            });
+            html += '</tr></thead><tbody>';
+
+            SEATS.forEach(seat => {
+                html += '<tr><td class="seat-header">' + seat.name + '<br><small>' + seat.desc + '</small></td>';
+                
+                dates.forEach(d => {
+                    const dateStr = formatDate(d);
+                    const key = dateStr + '-' + seat.id;
+                    const cellId = seat.id + '-' + dateStr;
+                    const isPast = d < today;
+                    const reserved = reservations[key];
+
+                    if (isPast) {
+                        html += '<td class="past">Past</td>';
+                    } else if (reserved) {
+                        html += '<td><div class="reserved"><div class="reserved-name">' + reserved + '</div>';
+                        html += '<button class="cancel-btn" onclick="cancelReservation(' + seat.id + ',\'' + dateStr + '\')">Cancel</button></div></td>';
+                    } else if (bookingCell === cellId) {
+                        html += '<td><select id="select-' + seat.id + '-' + dateStr + '">';
+                        html += '<option value="">Select person...</option>';
+                        TEAM.forEach(name => {
+                            html += '<option value="' + name + '">' + name + '</option>';
+                        });
+                        html += '</select><div class="booking-buttons">';
+                        html += '<button class="confirm-btn" onclick="confirmBook(' + seat.id + ',\'' + dateStr + '\')">Book</button>';
+                        html += '<button class="cancel-form-btn" onclick="cancelBook()">Cancel</button>';
+                        html += '</div></td>';
+                    } else {
+                        html += '<td><button class="book-btn" onclick="showBooking(' + seat.id + ',\'' + dateStr + '\')">Book</button></td>';
+                    }
+                });
+                
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('tableContainer').innerHTML = html;
+        }
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
